@@ -394,13 +394,14 @@ int DFT::DFTCalc::calculateDFT(const bool reuse, const std::string& cwd, const F
 		   << " -x \"" + exp.getFileRealPath() + "\""
 		   << " -b \"" + bcg.getFileRealPath() + "\""
 		   << " -n \"" + dftOriginal.getFileRealPath() + "\""
-		   << " \""    + dft.getFileRealPath() + "\""
-		   << " --warn-code";
+		   << " \""    + dft.getFileRealPath() + "\"";
+		// FIXME: problem on Mac with flag warn-code and empty evidence!
+		   /*<< " --warn-code";
 		ss << " -e \"";
 		for(std::string e: evidence) {
 			ss << e << ",";
 		}
-		ss << "\"";
+		ss << "\"";*/
 		if (!messageFormatter->usingColoredMessages())
 			ss << " --no-color";
 		sysOps.command = ss.str();

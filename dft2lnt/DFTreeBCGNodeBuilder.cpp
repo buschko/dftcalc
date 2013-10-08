@@ -329,6 +329,7 @@ int DFT::DFTreeBCGNodeBuilder::generateFDEP(FileWriter& out, const DFT::Nodes::G
 	return 0;
 }
 
+/*
 int DFT::DFTreeBCGNodeBuilder::generateBE(FileWriter& out, const DFT::Nodes::BasicEvent& be) {
 	int nr_parents = be.getParents().size();
 	bool cold = be.getMu()==0;
@@ -370,6 +371,55 @@ int DFT::DFTreeBCGNodeBuilder::generateBE(FileWriter& out, const DFT::Nodes::Bas
 
 	return 0;
 }
+*/
+
+/**********************************************************************************************
+ *************************                TEST                *********************************
+ **********************************************************************************************/
+
+int DFT::DFTreeBCGNodeBuilder::generateBE(FileWriter& out, const DFT::Nodes::BasicEvent& be) {
+	int nr_parents = be.getParents().size();
+	bool cold = be.getMu()==0;
+
+	// new boolean variable for repairable BE
+	bool repair = be.getRepair() > 0;
+
+	std::string initialState;
+	if(be.getFailed()) initialState = "FAILING";
+	else if(repair) initialState = "UP";
+	else initialState = "DORMANT";
+
+	out << out.applyprefix << " * Generating BE(parents=" << nr_parents << ")" << out.applypostfix;
+	generateHeaderClose(out);
+	out << out.applyprefix << "module " << getFileForNode(be) << "(TEMPLATE_BE";
+	// use repair template if  repairable
+	out << (repair?"_REPAIR_SELF) is":") is") << out.applypostfix;
+	out.appendLine("");
+	out.indent();
+		if(repair)
+			out << out.applyprefix << "process MAIN [" << GATE_FAIL << " : NAT_CHANNEL, " << GATE_ONLINE << " : NAT_CHANNEL, " << GATE_ACTIVATE << " : NAT_BOOL_CHANNEL, " << GATE_RATE_FAIL << " : NAT_NAT_CHANNEL, " << GATE_RATE_REPAIR << " : NAT_NAT_CHANNEL] is" << out.applypostfix;
+		else
+			out << out.applyprefix << "process MAIN [" << GATE_FAIL << " : NAT_CHANNEL, " << GATE_ACTIVATE << " : NAT_BOOL_CHANNEL, " << GATE_RATE_FAIL << " : NAT_NAT_CHANNEL] is" << out.applypostfix;
+		out.indent();
+			if(repair)
+				out << out.applyprefix << "BEproc [" << GATE_FAIL << "," << GATE_ONLINE << "," << GATE_ACTIVATE << "," << GATE_RATE_FAIL << ","  << GATE_RATE_REPAIR << "](" << nr_parents << " of NAT";
+			else
+				out << out.applyprefix << "BEproc [" << GATE_FAIL << "," << GATE_ACTIVATE << "," << GATE_RATE_FAIL << "](" << nr_parents << " of NAT";
+			out << ", " << (cold?"TRUE":"FALSE");
+			out << ", " << initialState;
+			out << ")" << out.applypostfix;
+		out.outdent();
+		out << out.applyprefix << "end process" << out.applypostfix;
+	out.outdent();
+	out.appendLine("");
+	out << out.applyprefix << "end module" << out.applypostfix;
+
+	return 0;
+}
+
+/**********************************************************************************************
+ ****************************           TEST END             **********************************
+ **********************************************************************************************/
 
 int DFT::DFTreeBCGNodeBuilder::generateRU(FileWriter& out, const DFT::Nodes::RepairUnit& gate) {
 	//int nr_parents = gate.getParents().size();

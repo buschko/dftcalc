@@ -46,6 +46,7 @@ void DFT::DFTreeEXPBuilder::printSyncLineShort(std::ostream& stream, const EXPSy
 	stream << " > @ " << (rule.syncOnNode?rule.syncOnNode->getName():"NOSYNC") << " -> " << rule.toLabel;
 }
 
+/*
 std::string DFT::DFTreeEXPBuilder::getBEProc(const DFT::Nodes::BasicEvent& be) const {
 	std::stringstream ss;
 
@@ -76,6 +77,46 @@ std::string DFT::DFTreeEXPBuilder::getBEProc(const DFT::Nodes::BasicEvent& be) c
 	}
 	return ss.str();
 }
+*/
+
+/**********************************************************************************************
+ *************************                TEST                *********************************
+ **********************************************************************************************/
+
+std::string DFT::DFTreeEXPBuilder::getBEProc(const DFT::Nodes::BasicEvent& be) const {
+	std::stringstream ss;
+
+	if(be.getMode() == DFT::Nodes::BE::CalculationMode::APH) {
+		ss << "total rename ";
+		ss << "\"ACTIVATE\" -> \"" << DFT::DFTreeBCGNodeBuilder::GATE_ACTIVATE << " !0 !FALSE\"";
+		ss << ", ";
+		ss << "\"FAIL\" -> \"" << DFT::DFTreeBCGNodeBuilder::GATE_FAIL << " !0\"";
+		//ss << "\"" << DFT::DFTreeBCGNodeBuilder::GATE_ACTIVATE << " !0 !FALSE\" -> \"A\"";
+		//ss << ", ";
+		//ss << "\"" << DFT::DFTreeBCGNodeBuilder::GATE_FAIL << " !0\" -> \"F\"";
+		ss << " in \"";
+		ss << be.getFileToEmbed();
+		ss << "\" end rename";
+	} else {
+		ss << "total rename ";
+		// Insert lambda value and repair
+		ss << "\"" << DFT::DFTreeBCGNodeBuilder::GATE_RATE_FAIL << " !1 !2\" -> \"rate " << be.getLambda() << "\"" << "," << "\"" << DFT::DFTreeBCGNodeBuilder::GATE_RATE_REPAIR << " !1 !2\" -> \"rate " << be.getRepair() << "\"";
+	
+		// Insert mu value (only for non-cold BE's)
+		if(be.getMu()>0) {
+			ss << ", ";
+			ss << "\"" << DFT::DFTreeBCGNodeBuilder::GATE_RATE_FAIL << " !1 !1\" -> \"rate " << be.getMu() << "\"" << "," << "\"" << DFT::DFTreeBCGNodeBuilder::GATE_RATE_REPAIR << " !1 !2\" -> \"rate " << be.getRepair() << "\"";
+		}
+		ss << " in \"";
+		ss << bcgRoot << DFT::DFTreeBCGNodeBuilder::getFileForNode(be);
+		ss << ".bcg\" end rename";
+	}
+	return ss.str();
+}
+
+ /**********************************************************************************************
+ ****************************           TEST END             **********************************
+ **********************************************************************************************/
 
 std::string DFT::DFTreeEXPBuilder::getRUProc(const DFT::Nodes::Gate& ru) const {
 	std::stringstream ss;
@@ -1167,7 +1208,7 @@ int DFT::DFTreeEXPBuilder::buildEXPBody(vector<DFT::EXPSyncRule*>& activationRul
 
 				/** ONLINE Rules **/
 				{
-					// Go through all the existing fail rules
+					// Go through all the existing online rules
 					std::vector<EXPSyncRule*>::iterator itf = onlineRules.begin();
 					bool areOtherRules = false;
 					for(;itf != onlineRules.end();++itf) {
