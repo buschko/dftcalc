@@ -528,7 +528,7 @@ int DFT::DFTreeEXPBuilder::buildEXPBody(vector<DFT::EXPSyncRule*>& activationRul
 	exp_body.outdent();
 	exp_body.appendLine("in");
 	/* rename the syncronization actions of BEs for fail and online */
-	exp_body << exp_body.applyprefix << "rename" << exp_body.applypostfix;
+	exp_body << exp_body.applyprefix << "total rename" << exp_body.applypostfix;
 	exp_body.indent();
 	
 	exp_body.outdent();
@@ -908,7 +908,7 @@ int DFT::DFTreeEXPBuilder::buildEXPBody(vector<DFT::EXPSyncRule*>& activationRul
 		cc->reportAction3(report.str(),VERBOSITY_RULEORIGINS);
 		
 		// Generate the Top Node Activate rule
-		ss << DFT::DFTreeBCGNodeBuilder::GATE_ACTIVATE;
+		ss << DFT::DFTreeBCGNodeBuilder::GATE_ONLINE;
 		if(!nameTop.empty()) ss << "_" << nameTop;
 		DFT::EXPSyncRule* ruleO = new EXPSyncRule(ss.str(),false);
 		ss.str("");
@@ -1341,7 +1341,7 @@ int DFT::DFTreeEXPBuilder::buildEXPBody(vector<DFT::EXPSyncRule*>& activationRul
 						// FIXME: Possibly this is actually never wanted,
 						// as it could allow multiple senders to synchronize
 						// with each other.
-						(*ito)->label.insert( pair<unsigned int,EXPSyncItem*>(nodeID,syncFail(n+1)) );
+						(*ito)->label.insert( pair<unsigned int,EXPSyncItem*>(nodeID,syncOnline(n+1)) );
 						cc->reportAction3("THIS Node added to existing sync rule",VERBOSITY_RULEORIGINS);
 					}
 				}

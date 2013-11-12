@@ -1,6 +1,6 @@
 module TEMPLATE_BE_SMART_REPAIR_2(TEMPLATE_COMMON_SMART_REPAIR) is
 	
-	process BE [FAIL : NAT_CHANNEL, ONLINE : NAT_CHANNEL] (initial: STATUS) is
+	process BEproc [FAIL : NAT_CHANNEL, ONLINE : NAT_CHANNEL] (initial: STATUS) is
 	var
 		status : STATUS,
 		nr : NAT
