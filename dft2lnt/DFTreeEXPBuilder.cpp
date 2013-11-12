@@ -83,7 +83,7 @@ std::string DFT::DFTreeEXPBuilder::getBEProc(const DFT::Nodes::BasicEvent& be) c
  *************************                TEST                *********************************
  **********************************************************************************************/
 
-std::string DFT::DFTreeEXPBuilder::getBEProc(const DFT::Nodes::BasicEvent& be) const {
+/*std::string DFT::DFTreeEXPBuilder::getBEProc(const DFT::Nodes::BasicEvent& be) const {
 	std::stringstream ss;
 
 	if(be.getMode() == DFT::Nodes::BE::CalculationMode::APH) {
@@ -111,6 +111,25 @@ std::string DFT::DFTreeEXPBuilder::getBEProc(const DFT::Nodes::BasicEvent& be) c
 		ss << bcgRoot << DFT::DFTreeBCGNodeBuilder::getFileForNode(be);
 		ss << ".bcg\" end rename";
 	}
+	return ss.str();
+}*/
+
+std::string DFT::DFTreeEXPBuilder::getBEProc(const DFT::Nodes::BasicEvent& be) const {
+	std::stringstream ss;
+
+		ss << "total rename ";
+		// Insert lambda value and repair
+		ss << "\"" << DFT::DFTreeBCGNodeBuilder::GATE_RATE_FAIL << " !1 !2\" -> \"rate " << be.getLambda() << "\"" << "," << "\"" << DFT::DFTreeBCGNodeBuilder::GATE_RATE_REPAIR << " !1 !2\" -> \"rate " << be.getRepair() << "\"";
+	
+		// Insert mu value (only for non-cold BE's)
+		if(be.getMu()>0) {
+			ss << ", ";
+			ss << "\"" << DFT::DFTreeBCGNodeBuilder::GATE_RATE_FAIL << " !1 !1\" -> \"rate " << be.getMu() << "\"" << "," << "\"" << DFT::DFTreeBCGNodeBuilder::GATE_RATE_REPAIR << " !1 !2\" -> \"rate " << be.getRepair() << "\"";
+		}
+		ss << " in \"";
+		ss << bcgRoot << DFT::DFTreeBCGNodeBuilder::getFileForNode(be);
+		ss << ".bcg\" end rename";
+	
 	return ss.str();
 }
 
@@ -226,14 +245,25 @@ int DFT::DFTreeEXPBuilder::build() {
 		//parseDFT(activationRules,failRules);
 		//buildEXPHeader(activationRules,failRules);
 		//buildEXPBody(activationRules,failRules);
+		
+		/*
 		parseDFT(activationRules,failRules,repairRules,repairedRules,repairingRules,onlineRules);
 		buildEXPHeader(activationRules,failRules,repairRules,repairedRules,onlineRules);
 		buildEXPBody(activationRules,failRules,repairRules,repairedRules,repairingRules,onlineRules);
+		*/
+		
+		// DFT without activation rules and repair included in online rules
+		parseDFTActive(failRules,onlineRules);
+		buildEXPHeaderActive(failRules,onlineRules);
+		buildEXPBodyActive(failRules,onlineRules);
 		
 		// Build SVL file
-		svl_body << "% BCG_MIN_OPTIONS=\"-self\";" << svl_body.applypostfix;
-		svl_body << "\"" << nameBCG << "\" = smart stochastic branching reduction of \"" << nameEXP << "\";" << svl_body.applypostfix;
-		svl_body << "% BCG_MIN_OPTIONS=\"\"" << svl_body.applypostfix;
+		//svl_body << "% BCG_MIN_OPTIONS=\"-self\";" << svl_body.applypostfix;
+		//svl_body << "\"" << nameBCG << "\" = smart stochastic branching reduction of \"" << nameEXP << "\";" << svl_body.applypostfix;
+		//svl_body << "% BCG_MIN_OPTIONS=\"\"" << svl_body.applypostfix;
+		
+		// new svl file to allow priorities
+		svl_body << "\"" << nameBCG << "\" = \"" << nameEXP << "\";" << svl_body.applypostfix;
 		
 	}
 	return !ok;
@@ -284,6 +314,13 @@ int DFT::DFTreeEXPBuilder::buildEXPHeader(vector<DFT::EXPSyncRule*>& activationR
 	return 0;
 }
 
+/******************************************************************************************************
+ * New rules for active DFTs
+ ******************************************************************************************************/
+int DFT::DFTreeEXPBuilder::buildEXPHeaderActive(vector<DFT::EXPSyncRule*>& failRules, vector<DFT::EXPSyncRule*>& onlineRules) {
+	return 0;
+}
+
 int DFT::DFTreeEXPBuilder::buildEXPHeader(vector<DFT::EXPSyncRule*>& activationRules, vector<DFT::EXPSyncRule*>& failRules,
 		vector<DFT::EXPSyncRule*>& repairRules, vector<DFT::EXPSyncRule*>& repairedRules, vector<DFT::EXPSyncRule*>& onlineRules) {
 	return 0;
@@ -326,6 +363,30 @@ int DFT::DFTreeEXPBuilder::parseDFT(vector<DFT::EXPSyncRule*>& activationRules, 
 				const DFT::Nodes::Gate& gate = static_cast<const DFT::Nodes::Gate&>(**it);
 				cc->reportAction("Creating synchronization rules for `" + gate.getName() + "' (THIS node)",VERBOSITY_FLOW);
 				createSyncRule(activationRules,failRules,repairRules,repairedRules,repairingRules,onlineRules,gate,getIDOfNode(gate));
+			}
+		}
+	}
+	return 0;
+}
+
+/******************************************************************************************************
+ * New rules for active DFTs
+ ******************************************************************************************************/
+int DFT::DFTreeEXPBuilder::parseDFTActive(vector<DFT::EXPSyncRule*>& failRules, vector<DFT::EXPSyncRule*>& onlineRules) {
+	
+	/* Create synchronization rules for all nodes in the DFT */
+
+	// Create synchronization rules for the Top node in the DFT
+	createSyncRuleTopActive(failRules, onlineRules);
+
+	// Create synchronization rules for all nodes in the DFT
+	{
+		std::vector<DFT::Nodes::Node*>::const_iterator it = dft->getNodes().begin();
+		for(;it!=dft->getNodes().end();++it) {
+			if((*it)->isGate()) {
+				const DFT::Nodes::Gate& gate = static_cast<const DFT::Nodes::Gate&>(**it);
+				cc->reportAction("Creating synchronization rules for `" + gate.getName() + "' (THIS node)",VERBOSITY_FLOW);
+				createSyncRuleActive(failRules,onlineRules,gate,getIDOfNode(gate));
 			}
 		}
 	}
@@ -422,6 +483,117 @@ int DFT::DFTreeEXPBuilder::buildEXPBody(vector<DFT::EXPSyncRule*>& activationRul
 	}
 	exp_body.outdent();
 	exp_body.appendLine("end hide");
+	return 0;
+}
+
+/******************************************************************************************************
+ * New rules for active DFTs
+ ******************************************************************************************************/
+ int DFT::DFTreeEXPBuilder::buildEXPBodyActive(vector<DFT::EXPSyncRule*>& failRules, vector<DFT::EXPSyncRule*>& onlineRules) {
+
+	/* Generate the EXP based on the generated synchronization rules */
+	exp_body.clearAll();
+	exp_body << exp_body.applyprefix << "(* Number of rules: " << (failRules.size()+onlineRules.size()) << "*)" << exp_body.applypostfix;
+	/* use priorities for FAIL and ONLINE */
+	exp_body << exp_body.applyprefix << "total prio" << exp_body.applypostfix;
+	exp_body.indent();
+	exp_body << exp_body.applyprefix << "\"FAIL\" > \"ONLINE\" > all but \"FAIL\", \"ONLINE\"" << exp_body.applypostfix;
+	exp_body.outdent();
+	exp_body.appendLine("in");
+	/* hide the syncronization actions of non BEs */
+	exp_body << exp_body.applyprefix << "hide" << exp_body.applypostfix;
+	exp_body.indent();
+	
+		// Hide rules
+		for(size_t s=0; s<failRules.size(); ++s) {
+			EXPSyncRule& rule = *failRules.at(s);
+			if(rule.hideToLabel) {
+				exp_body << exp_body.applyprefix << rule.toLabel << "," << exp_body.applypostfix;
+			}
+		}
+		for(size_t s=0; s<failRules.size(); ++s) {
+			EXPSyncRule& rule = *failRules.at(s);
+			if(rule.hideToLabel) {
+				exp_body << exp_body.applyprefix << rule.toLabel;
+				if(s<failRules.size()-1) exp_body << ",";
+				exp_body << exp_body.applypostfix;
+			}
+		}
+	
+	exp_body.outdent();
+	exp_body.appendLine("in");
+	/* rename the syncronization actions of BEs for fail and online */
+	exp_body << exp_body.applyprefix << "rename" << exp_body.applypostfix;
+	exp_body.indent();
+	
+	exp_body.outdent();
+	exp_body.appendLine("in");
+	exp_body.indent();
+	{
+		// Synchronization rules
+		vector<unsigned int> columnWidths(dft->getNodes().size(),0);
+		calculateColumnWidths(columnWidths,failRules);
+		calculateColumnWidths(columnWidths,onlineRules);
+
+		exp_body << exp_body.applyprefix << "label par" << exp_body.applypostfix;
+		exp_body << exp_body.applyprefix << "(*\t";
+		std::vector<DFT::Nodes::Node*>::const_iterator it = dft->getNodes().begin();
+		for(int c=0;it!=dft->getNodes().end();++it,++c) {
+			if(c>0) exp_body << "   ";
+			exp_body.outlineLeftNext(columnWidths[c],' ');
+			exp_body << exp_body._push << (*it)->getTypeStr() << getIDOfNode(**it) << exp_body._pop;
+		}
+		exp_body << " *)" << exp_body.applypostfix;
+		
+		exp_body.indent();
+		// Generate activation rules
+		{
+			for(size_t s=0; s<failRules.size(); ++s) {
+				exp_body << exp_body.applyprefix;
+				printSyncLine(*failRules.at(s),columnWidths);
+				exp_body << ",";
+				exp_body << exp_body.applypostfix;
+			}
+		}
+		// Generate fail rules
+		{
+			for(size_t s=0; s<onlineRules.size(); ++s) {
+				exp_body << exp_body.applyprefix;
+				printSyncLine(*onlineRules.at(s),columnWidths);
+				if(s<failRules.size()-1) exp_body << ",";
+				exp_body << exp_body.applypostfix;
+			}
+		}
+		exp_body.outdent();
+
+		// Generate the parallel composition of all the nodes
+		exp_body << exp_body.applyprefix << "in" << exp_body.applypostfix;
+		exp_body.indent();
+		{
+			int c=0;
+			{
+				std::vector<DFT::Nodes::Node*>::iterator it = dft->getNodes().begin();
+				for(;it!=dft->getNodes().end();++it,++c) {
+					const DFT::Nodes::Node& node = **it;
+					if(c>0) exp_body << exp_body.applyprefix << "||" << exp_body.applypostfix;
+					if(node.isBasicEvent()) {
+						const DFT::Nodes::BasicEvent& be = *static_cast<const DFT::Nodes::BasicEvent*>(&node);
+						exp_body << exp_body.applyprefix << getBEProc(be) << exp_body.applypostfix;
+					} else if(node.isGate()) {
+						exp_body << exp_body.applyprefix << "\"" << bcgRoot << DFT::DFTreeBCGNodeBuilder::getFileForNode(node) << ".bcg\"" << exp_body.applypostfix;
+					} else {
+						assert(0 && "buildEXPBody(): Unknown node type");
+					}
+				}
+			}
+		}
+		exp_body.outdent();
+		exp_body << exp_body.applyprefix << "end par" << exp_body.applypostfix;
+	}
+	exp_body.outdent();
+	exp_body.appendLine("end rename");
+	exp_body.appendLine("end hide");
+	exp_body.appendLine("end prio");
 	return 0;
 }
 
@@ -703,6 +875,55 @@ int DFT::DFTreeEXPBuilder::buildEXPBody(vector<DFT::EXPSyncRule*>& activationRul
 			std::stringstream report;
 			report << "Added new fail       sync rule: ";
 			printSyncLineShort(report,*ruleF);
+			cc->reportAction2(report.str(),VERBOSITY_RULES);
+		}
+		
+		return 0;
+	}
+
+	/******************************************************************************************************
+	 * New rules for active DFTs
+	 ******************************************************************************************************/
+	int DFT::DFTreeEXPBuilder::createSyncRuleTopActive(vector<DFT::EXPSyncRule*>& failRules, vector<DFT::EXPSyncRule*>& onlineRules) {
+		std::stringstream ss;
+		
+		// Obtain the Top Node
+		std::map<const DFT::Nodes::Node*, unsigned int>::iterator it = nodeIDs.find(dft->getTopNode());
+		assert( (it != nodeIDs.end()) );
+
+		// Generate the Top Node Fail rule
+		ss << DFT::DFTreeBCGNodeBuilder::GATE_FAIL;
+		if(!nameTop.empty()) ss << "_" << nameTop;
+		DFT::EXPSyncRule* ruleF = new EXPSyncRule(ss.str(),false);
+		ss.str("");
+		ruleF->label.insert( pair<unsigned int,EXPSyncItem*>(it->second,syncFail(0)) );
+		
+		std::stringstream report;
+		report << "New EXPSyncRule " << ss.str();
+		cc->reportAction3(report.str(),VERBOSITY_RULEORIGINS);
+		
+		// Generate the Top Node Activate rule
+		ss << DFT::DFTreeBCGNodeBuilder::GATE_ACTIVATE;
+		if(!nameTop.empty()) ss << "_" << nameTop;
+		DFT::EXPSyncRule* ruleO = new EXPSyncRule(ss.str(),false);
+		ss.str("");
+		ruleO->label.insert( pair<unsigned int,EXPSyncItem*>(it->second,syncOnline(0)) );
+		
+		// Add the generated rules to the lists
+		failRules.push_back(ruleF);
+		onlineRules.push_back(ruleO);
+		
+		cc->reportAction("Creating synchronization rules for Top node",VERBOSITY_FLOW);
+		{
+			std::stringstream report;
+			report << "Added new fail       sync rule: ";
+			printSyncLineShort(report,*ruleF);
+			cc->reportAction2(report.str(),VERBOSITY_RULES);
+		}
+		{
+			std::stringstream report;
+			report << "Added new online     sync rule: ";
+			printSyncLineShort(report,*ruleO);
 			cc->reportAction2(report.str(),VERBOSITY_RULES);
 		}
 		
@@ -1023,6 +1244,203 @@ int DFT::DFTreeEXPBuilder::buildEXPBody(vector<DFT::EXPSyncRule*>& activationRul
 		return 0;
 	}
 
+	/******************************************************************************************************
+	 * New rules for active DFTs
+	 ******************************************************************************************************/
+	int DFT::DFTreeEXPBuilder::createSyncRuleActive(vector<DFT::EXPSyncRule*>& failRules, vector<DFT::EXPSyncRule*>& onlineRules, const DFT::Nodes::Gate& node, unsigned int nodeID) {
+		
+		/* Generate non-specific rules for the node */
+		
+		// Go through all the children
+		for(size_t n = 0; n<node.getChildren().size(); ++n) {
+			
+			// Get the current child and associated childID
+			const DFT::Nodes::Node& child = *node.getChildren().at(n);
+			
+			std::map<const DFT::Nodes::Node*, unsigned int>::iterator it = nodeIDs.find(&child);
+			assert( (it != nodeIDs.end()) && "createSyncRule() was looking for nonexistent node");
+			unsigned int childID = it->second;
+			
+			cc->reportAction2("Child `" + child.getName() + "'" + (child.usesDynamicActivation()?" (dynact)":"") + " ...",VERBOSITY_RULES);
+			
+			/** FAIL RULE **/
+			{
+				// Go through all the existing fail rules
+				std::vector<EXPSyncRule*>::iterator itf = failRules.begin();
+				bool areOtherRules = false;
+				for(;itf != failRules.end();++itf) {
+					
+					// If there is a rule that also synchronizes on the same node,
+					// we have come across a child with another parent.
+					if((*itf)->syncOnNode == &child) {
+						cc->reportAction3("Detected earlier fail rule",VERBOSITY_RULEORIGINS);
+						if(areOtherRules) {
+							cc->reportError("There should be only one FAIL rule per node, bailing...");
+							return 1;
+						}
+						areOtherRules = true;
+						// We can simply add the THIS node as a sender to
+						// the other synchronization rule.
+						// FIXME: Possibly this is actually never wanted,
+						// as it could allow multiple senders to synchronize
+						// with each other.
+						(*itf)->label.insert( pair<unsigned int,EXPSyncItem*>(nodeID,syncFail(n+1)) );
+						cc->reportAction3("THIS Node added to existing sync rule",VERBOSITY_RULEORIGINS);
+					}
+				}
+				
+				// If there are other rules that synchronize on the same node,
+				// we do not need to synchronize any further
+				// FIXME: This is probably not true!
+				if(!areOtherRules) {
+					// Add the child Node to the synchronization rule
+					// Create synchronization rules a_<nodetype><nodeid>_<childtype><childid>
+					std::stringstream ss;
+					ss << "f_" << child.getTypeStr() << childID;
+					EXPSyncRule* ruleF;
+					if(child.isBasicEvent())
+						ruleF = new EXPSyncRule(ss.str(),false);
+					else
+						ruleF = new EXPSyncRule(ss.str());
+					ruleF->syncOnNode = &child;
+					ruleF->label.insert( pair<unsigned int,EXPSyncItem*>(nodeID,syncFail(n+1)) );
+					ruleF->label.insert( pair<unsigned int,EXPSyncItem*>(childID,syncFail(0)) );
+					{
+						std::stringstream report;
+						report << "Added new fail       sync rule: ";
+						printSyncLineShort(report,*ruleF);
+						cc->reportAction2(report.str(),VERBOSITY_RULES);
+					}
+					failRules.push_back(ruleF);
+				}
+			}
+			
+			/** ONLINE RULE **/
+			{
+				// Go through all the existing fail rules
+				std::vector<EXPSyncRule*>::iterator ito = onlineRules.begin();
+				bool areOtherRules = false;
+				for(;ito != onlineRules.end();++ito) {
+					
+					// If there is a rule that also synchronizes on the same node,
+					// we have come across a child with another parent.
+					if((*ito)->syncOnNode == &child) {
+						cc->reportAction3("Detected earlier online rule",VERBOSITY_RULEORIGINS);
+						if(areOtherRules) {
+							cc->reportError("There should be only one ONLINE rule per node, bailing...");
+							return 1;
+						}
+						areOtherRules = true;
+						// We can simply add the THIS node as a sender to
+						// the other synchronization rule.
+						// FIXME: Possibly this is actually never wanted,
+						// as it could allow multiple senders to synchronize
+						// with each other.
+						(*ito)->label.insert( pair<unsigned int,EXPSyncItem*>(nodeID,syncFail(n+1)) );
+						cc->reportAction3("THIS Node added to existing sync rule",VERBOSITY_RULEORIGINS);
+					}
+				}
+				
+				// If there are other rules that synchronize on the same node,
+				// we do not need to synchronize any further
+				// FIXME: This is probably not true!
+				if(!areOtherRules) {
+					// Add the child Node to the synchronization rule
+					// Create synchronization rules a_<nodetype><nodeid>_<childtype><childid>
+					std::stringstream ss;
+					ss << "o_" << child.getTypeStr() << childID;
+					EXPSyncRule* ruleO;
+					if(child.isBasicEvent())
+						ruleO = new EXPSyncRule(ss.str(),false);
+					else
+						ruleO = new EXPSyncRule(ss.str());
+					ruleO->syncOnNode = &child;
+					ruleO->label.insert( pair<unsigned int,EXPSyncItem*>(nodeID,syncOnline(n+1)) );
+					ruleO->label.insert( pair<unsigned int,EXPSyncItem*>(childID,syncOnline(0)) );
+					{
+						std::stringstream report;
+						report << "Added new fail       sync rule: ";
+						printSyncLineShort(report,*ruleO);
+						cc->reportAction2(report.str(),VERBOSITY_RULES);
+					}
+					onlineRules.push_back(ruleO);
+				}
+			}
+
+			
+		}
+		
+		/* Generate node-specific rules for the node */
+		
+		switch(node.getType()) {
+		case DFT::Nodes::BasicEventType: {
+//			const DFT::Nodes::BasicEvent* be = static_cast<const DFT::Nodes::BasicEvent*>(&node);
+//			createSyncRuleBE(syncRules,*be,nodeID);
+			break;
+		}
+		case DFT::Nodes::GateType: {
+			cc->reportError("A gate should have a specialized type, not the general GateType");
+			break;
+		}
+		case DFT::Nodes::GatePhasedOrType: {
+			cc->reportErrorAt(node.getLocation(),"DFTreeEXPBuilder: unsupported gate: " + node.getTypeStr());
+			break;
+		}
+		case DFT::Nodes::GateOrType: {
+			const DFT::Nodes::GateOr* g = static_cast<const DFT::Nodes::GateOr*>(&node);
+			createSyncRuleGateOr(failRules,onlineRules,*g,nodeID);
+			break;
+		}
+		case DFT::Nodes::GateAndType: {
+			const DFT::Nodes::GateAnd* g = static_cast<const DFT::Nodes::GateAnd*>(&node);
+			createSyncRuleGateAnd(failRules,onlineRules,*g,nodeID);
+			break;
+		}
+		case DFT::Nodes::GateHSPType: {
+			cc->reportErrorAt(node.getLocation(),"DFTreeEXPBuilder: unsupported gate: " + node.getTypeStr());
+			break;
+		}
+		case DFT::Nodes::GateWSPType: {
+			const DFT::Nodes::GateWSP* g = static_cast<const DFT::Nodes::GateWSP*>(&node);
+			createSyncRuleGateWSP(failRules,onlineRules,*g,nodeID);
+			break;
+		}
+		case DFT::Nodes::GateCSPType: {
+			cc->reportErrorAt(node.getLocation(),"DFTreeEXPBuilder: unsupported gate: " + node.getTypeStr());
+			break;
+		}
+		case DFT::Nodes::GatePAndType: {
+			const DFT::Nodes::GatePAnd* g = static_cast<const DFT::Nodes::GatePAnd*>(&node);
+			createSyncRuleGatePAnd(failRules,onlineRules,*g,nodeID);
+			break;
+		}
+		case DFT::Nodes::GateSeqType: {
+			cc->reportErrorAt(node.getLocation(),"DFTreeEXPBuilder: unsupported gate: " + node.getTypeStr());
+			break;
+		}
+		case DFT::Nodes::GateVotingType: {
+			const DFT::Nodes::GateVoting* g = static_cast<const DFT::Nodes::GateVoting*>(&node);
+			createSyncRuleGateVoting(failRules,onlineRules,*g,nodeID);
+			break;
+		}
+		case DFT::Nodes::GateFDEPType: {
+			const DFT::Nodes::GateFDEP* g = static_cast<const DFT::Nodes::GateFDEP*>(&node);
+			createSyncRuleGateFDEP(failRules,onlineRules,*g,nodeID);
+			break;
+		}
+		case DFT::Nodes::GateTransferType: {
+			cc->reportErrorAt(node.getLocation(),"DFTreeEXPBuilder: unsupported gate: " + node.getTypeStr());
+			break;
+		}
+		default: {
+			cc->reportError("UnknownNode");
+			break;
+		}
+		}
+		
+		return 0;
+	}
+
 	int DFT::DFTreeEXPBuilder::createSyncRule(vector<DFT::EXPSyncRule*>& activationRules, vector<DFT::EXPSyncRule*>& failRules,
 			vector<DFT::EXPSyncRule*>& repairRules, vector<DFT::EXPSyncRule*>& repairedRules, vector<DFT::EXPSyncRule*>& repairingRules, vector<DFT::EXPSyncRule*>& onlineRules, const DFT::Nodes::Gate& node, unsigned int nodeID) {
 
@@ -1208,6 +1626,7 @@ int DFT::DFTreeEXPBuilder::buildEXPBody(vector<DFT::EXPSyncRule*>& activationRul
 
 				/** ONLINE Rules **/
 				{
+					if(node.isRepairable()){
 					// Go through all the existing online rules
 					std::vector<EXPSyncRule*>::iterator itf = onlineRules.begin();
 					bool areOtherRules = false;
@@ -1251,6 +1670,7 @@ int DFT::DFTreeEXPBuilder::buildEXPBody(vector<DFT::EXPSyncRule*>& activationRul
 							cc->reportAction2(report.str(),VERBOSITY_RULES);
 						}
 						onlineRules.push_back(ruleO);
+					}
 					}
 				}
 

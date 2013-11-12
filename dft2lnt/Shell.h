@@ -145,6 +145,7 @@ public:
 	static int system(const SystemOptions& options, RunStatistics* stats = NULL);
 	
 	static int execute(const SystemOptions& options, RunStatistics* stats = NULL, unordered_map<string,string> environment = unordered_map<string,string>());
+	//static int execute(const SystemOptions& options, RunStatistics* stats = NULL, unordered_map<string,string> environment);
 	
 	static bool memtimeAvailable() {
 		vector<File> memtimes;

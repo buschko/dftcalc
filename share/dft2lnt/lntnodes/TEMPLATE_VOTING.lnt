@@ -16,7 +16,7 @@ module TEMPLATE_VOTING(TEMPLATE_COMMON) is
 			 * If this happens, we remember this by setting the boolean
 			 * in the received array to TRUE. We also decrement the threshold.
 			 *)
-				FAIL (?nr) where (0 < nr) and (nr <= total);
+				 FAIL (?nr) where (0 < nr) and (nr <= total) and (not(done));
 				if not (received[nr]) and (threshold > 0) then
 					received[nr] := TRUE;
 					threshold := threshold - 1
@@ -37,7 +37,7 @@ module TEMPLATE_VOTING(TEMPLATE_COMMON) is
 			 * If this node is activated, enable the activation procedure.
 			 *)
 			[]
-				ACTIVATE (?nr,FALSE) where nr == (0 of NAT);
+				 ACTIVATE (?nr,FALSE) where nr == (0 of NAT) and (not(done));
 				if (nr_act == 0 of NAT) then
 					nr_act := 1 of NAT
 				end if
@@ -47,7 +47,7 @@ module TEMPLATE_VOTING(TEMPLATE_COMMON) is
 			 * from left to right.
 			 *)
 			[]
-				if (nr_act > 0) then
+				if (nr_act > 0) and (not(done)) then
 					if not (received[nr_act]) then
 						ACTIVATE (!nr_act,TRUE)
 					end if;

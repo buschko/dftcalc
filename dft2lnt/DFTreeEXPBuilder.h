@@ -234,6 +234,13 @@ public:
 	 * @return UNDECIDED
 	 */
 	int buildEXPHeader(vector<DFT::EXPSyncRule*>& activationRules, vector<DFT::EXPSyncRule*>& failRules);
+	
+	/**
+	 * Affects FileWriters: exp_header
+	 * @return UNDECIDED
+	 */
+	int buildEXPHeaderActive(vector<DFT::EXPSyncRule*>& failRules, vector<DFT::EXPSyncRule*>& onlineRules);
+
 
 	/**
 	 * Builds the actual composition script from the DFT specification
@@ -241,6 +248,13 @@ public:
 	 * @return UNDECIDED
 	 */
 	int buildEXPBody(vector<DFT::EXPSyncRule*>& activationRules, vector<DFT::EXPSyncRule*>& failRules);
+	
+	/**
+	 * Builds the actual composition script from the DFT specification
+	 * Affects FileWriters: exp_body
+	 * @return UNDECIDED
+	 */
+	int buildEXPBodyActive(vector<DFT::EXPSyncRule*>& failRules, vector<DFT::EXPSyncRule*>& onlineRules);
 
 	/**
 	 * Builds the rule system for the to be generated EXP file. 
@@ -248,6 +262,13 @@ public:
 	 * @return UNDECIDED
 	 */
 	int parseDFT(vector<DFT::EXPSyncRule*>& activationRules, vector<DFT::EXPSyncRule*>& failRules);
+	
+	/**
+	 * Builds the rule system for the to be generated EXP file. 
+	 * Calls to buildEXPBody() and buildEXPHeader() should be valid after this.
+	 * @return UNDECIDED
+	 */
+	int parseDFTActive(vector<DFT::EXPSyncRule*>& failRules, vector<DFT::EXPSyncRule*>& onlineRules);
 	
 	/**
 	 * Builds the rule system for the to be generated EXP file.
@@ -365,8 +386,10 @@ public:
 	 * @return 0.
 	 */
 	int createSyncRuleTop(vector<DFT::EXPSyncRule*>& activationRules, vector<DFT::EXPSyncRule*>& failRules);
+	int createSyncRuleTopActive(vector<DFT::EXPSyncRule*>& failRules, vector<DFT::EXPSyncRule*>& onlineRules);
 	int createSyncRuleTop(vector<DFT::EXPSyncRule*>& activationRules, vector<DFT::EXPSyncRule*>& failRules, vector<DFT::EXPSyncRule*>& onlineRules);
 	int createSyncRule(vector<DFT::EXPSyncRule*>& activationRules, vector<DFT::EXPSyncRule*>& failRules, const DFT::Nodes::Gate& node, unsigned int nodeID);
+	int createSyncRuleActive(vector<DFT::EXPSyncRule*>& failRules, vector<DFT::EXPSyncRule*>& onlineRules, const DFT::Nodes::Gate& node, unsigned int nodeID);
 	int createSyncRule(vector<DFT::EXPSyncRule*>& activationRules, vector<DFT::EXPSyncRule*>& failRules,
 			vector<DFT::EXPSyncRule*>& repairRules, vector<DFT::EXPSyncRule*>& repairedRules, vector<DFT::EXPSyncRule*>& repairingRules, vector<DFT::EXPSyncRule*>& onlineRules, const DFT::Nodes::Gate& node, unsigned int nodeID);
 

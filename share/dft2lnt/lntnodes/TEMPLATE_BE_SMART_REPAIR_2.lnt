@@ -1,0 +1,38 @@
+module TEMPLATE_BE_SMART_REPAIR_2(TEMPLATE_COMMON_SMART_REPAIR) is
+	
+	process BE [FAIL : NAT_CHANNEL, ONLINE : NAT_CHANNEL] (initial: STATUS) is
+	var
+		status : STATUS,
+		nr : NAT
+	in
+		status := initial;
+		nr := 0;
+		loop
+			select
+			
+			(*
+			 * When this BE is in the UP state, it can fail with the
+			 * failure rate associated with this state. The rate is later
+			 * introduced using renaming of RATE_FAIL !1 !1.
+			 * If the failure event is triggered, go into the FAILED state.
+			 *)
+				if (status == ACTIVE) then
+					FAIL (!0 of NAT);
+					status := FAILED
+				end if
+				
+			(*
+			 * send the failure signal
+			 *)
+			[]
+				if (status == FAILED) then
+					ONLINE (!0 of NAT);
+					status := ACTIVE
+				end if
+
+			end select
+		end loop
+	end var
+	end process
+
+end module

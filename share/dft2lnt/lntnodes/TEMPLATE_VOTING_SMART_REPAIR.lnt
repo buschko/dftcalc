@@ -1,0 +1,72 @@
+module TEMPLATE_VOTING_SMART_REPAIR(TEMPLATE_COMMON_SMART_REPAIR) is
+
+	process VOTING [FAIL : NAT_CHANNEL, ONLINE : NAT_CHANNEL] (threshold : NAT, total : NAT, received : BOOL_ARRAY) is
+	var
+		nr : NAT,
+		done : BOOL,
+		nr_act : NAT,
+		k : NAT
+	in
+		nr_act := 0;
+		done := FALSE;
+		k := threshold;
+		loop
+			select
+			
+			(*
+			 * Listen for any child to be triggered.
+			 * If this happens, we remember this by setting the boolean
+			 * in the received array to TRUE. We also decrement the threshold.
+			 *)
+				FAIL (?nr) where (0 < nr) and (nr <= total) and (not(received[nr])) and ((not(threshold==0) and not(done)) or ((threshold==0) and done) or ((threshold > 0) and (threshold < k)) or ((threshold==k) and not(done)));
+				if (not(received[nr]) and ((not(threshold==0) and not(done)) or ((threshold==0) and done) or ((threshold > 0) and (threshold < k)) or ((threshold==k) and not(done)))) then
+					received[nr] := TRUE;
+					threshold := threshold - 1
+				end if
+			
+			(*
+			 * If the threshold reaches 0, this means the threshold number
+			 * of children have failed out of the total number of children.
+			 * Thus, the Voting node fails and notifies its parents.
+			 *)
+			[]
+				if ((threshold == 0) and not (done)) then
+					FAIL (!0 of NAT); 
+					done := TRUE
+				end if;
+				nr := 0
+				
+			[]
+			(*
+			and ((not(threshold==0) and not(done)) or ((threshold==0) and done) or (threshold > 0))
+			*)
+				ONLINE (?nr) where (0 < nr) and (nr <= total) and (received[nr]) and ((not(threshold==0) and not(done)) or ((threshold==0) and done) or (threshold > 0));
+				if (received[nr] and (threshold>0)) then
+					received[nr] := FALSE;
+					threshold := threshold + 1
+				else
+					if(received[nr] and (threshold <= 0) and done) then
+						if (done) then
+							received[nr] := FALSE;
+							if(threshold<k) then
+								threshold := threshold + 1
+							end if
+						end if
+					end if
+				end if
+				
+			[]
+				if ((threshold == k) and done) then
+					done := FALSE;
+					ONLINE (!0 of NAT)
+				end if
+
+			
+			end select
+		end loop
+	end var
+	end process
+
+
+end module 
+
