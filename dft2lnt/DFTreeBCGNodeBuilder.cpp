@@ -452,8 +452,7 @@ int DFT::DFTreeBCGNodeBuilder::generateBE(FileWriter& out, const DFT::Nodes::Bas
 	generateHeaderClose(out);
 	out << out.applyprefix << "module " << getFileForNode(be) << "(TEMPLATE_BE";
 	// use repair template if  repairable
-	out << (repair?"_SMART_REPAIR_2)
-	is":") is") << out.applypostfix;
+	out << (repair?"_SMART_REPAIR_2)is":") is") << out.applypostfix;
 	out.appendLine("");
 	out.indent();
 		if(repair)
