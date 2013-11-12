@@ -117,18 +117,9 @@ std::string DFT::DFTreeEXPBuilder::getBEProc(const DFT::Nodes::BasicEvent& be) c
 std::string DFT::DFTreeEXPBuilder::getBEProc(const DFT::Nodes::BasicEvent& be) const {
 	std::stringstream ss;
 
-		ss << "total rename ";
-		// Insert lambda value and repair
-		ss << "\"" << DFT::DFTreeBCGNodeBuilder::GATE_RATE_FAIL << " !1 !2\" -> \"rate " << be.getLambda() << "\"" << "," << "\"" << DFT::DFTreeBCGNodeBuilder::GATE_RATE_REPAIR << " !1 !2\" -> \"rate " << be.getRepair() << "\"";
-	
-		// Insert mu value (only for non-cold BE's)
-		if(be.getMu()>0) {
-			ss << ", ";
-			ss << "\"" << DFT::DFTreeBCGNodeBuilder::GATE_RATE_FAIL << " !1 !1\" -> \"rate " << be.getMu() << "\"" << "," << "\"" << DFT::DFTreeBCGNodeBuilder::GATE_RATE_REPAIR << " !1 !2\" -> \"rate " << be.getRepair() << "\"";
-		}
-		ss << " in \"";
+		ss << "\"";
 		ss << bcgRoot << DFT::DFTreeBCGNodeBuilder::getFileForNode(be);
-		ss << ".bcg\" end rename";
+		ss << ".bcg\"";
 	
 	return ss.str();
 }
@@ -530,7 +521,12 @@ int DFT::DFTreeEXPBuilder::buildEXPBody(vector<DFT::EXPSyncRule*>& activationRul
 	/* rename the syncronization actions of BEs for fail and online */
 	exp_body << exp_body.applyprefix << "total rename" << exp_body.applypostfix;
 	exp_body.indent();
-	
+	// add fail rates
+		
+		// add online rates
+		
+		
+		//ss << "\"" << DFT::DFTreeBCGNodeBuilder::GATE_RATE_FAIL << " !1 !2\" -> \"rate " << be.getLambda() << "\"" << "," << "\"" << DFT::DFTreeBCGNodeBuilder::GATE_RATE_REPAIR << " !1 !2\" -> \"rate " << be.getRepair() << "\"";
 	exp_body.outdent();
 	exp_body.appendLine("in");
 	exp_body.indent();
@@ -551,7 +547,7 @@ int DFT::DFTreeEXPBuilder::buildEXPBody(vector<DFT::EXPSyncRule*>& activationRul
 		exp_body << " *)" << exp_body.applypostfix;
 		
 		exp_body.indent();
-		// Generate activation rules
+		// Generate fail rules
 		{
 			for(size_t s=0; s<failRules.size(); ++s) {
 				exp_body << exp_body.applyprefix;
@@ -560,7 +556,7 @@ int DFT::DFTreeEXPBuilder::buildEXPBody(vector<DFT::EXPSyncRule*>& activationRul
 				exp_body << exp_body.applypostfix;
 			}
 		}
-		// Generate fail rules
+		// Generate online rules
 		{
 			for(size_t s=0; s<onlineRules.size(); ++s) {
 				exp_body << exp_body.applyprefix;
