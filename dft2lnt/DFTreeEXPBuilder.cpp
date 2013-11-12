@@ -207,7 +207,7 @@ int DFT::DFTreeEXPBuilder::build() {
 	
 	// Check all the nodes in the DFT, adding BasicEvents to basicEvents and
 	// Gates to gates. Also keep track of what Lotos NT files are needed by
-	// adding them to neededFiles.
+	// adding them to neededFiles.cd
 	basicEvents.clear();
 	gates.clear();
 	nodeIDs.clear();
@@ -233,12 +233,17 @@ int DFT::DFTreeEXPBuilder::build() {
 		exp_header.clearAll();
 		exp_body.clearAll();
 		
+		/*
 		vector<DFT::EXPSyncRule*> activationRules;
 		vector<DFT::EXPSyncRule*> failRules;
 		// new rules for repair, repaired and online
 		vector<DFT::EXPSyncRule*> repairRules;
 		vector<DFT::EXPSyncRule*> repairedRules;
 		vector<DFT::EXPSyncRule*> repairingRules;
+		vector<DFT::EXPSyncRule*> onlineRules;
+		*/
+		
+		vector<DFT::EXPSyncRule*> failRules;
 		vector<DFT::EXPSyncRule*> onlineRules;
 		
 

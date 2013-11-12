@@ -445,14 +445,15 @@ int DFT::DFTreeBCGNodeBuilder::generateBE(FileWriter& out, const DFT::Nodes::Bas
 
 	std::string initialState;
 	if(be.getFailed()) initialState = "FAILING";
-	else if(repair) initialState = "UP";
+	else if(repair) initialState = "ACTIVE";
 	else initialState = "DORMANT";
 
 	out << out.applyprefix << " * Generating BE(parents=" << nr_parents << ")" << out.applypostfix;
 	generateHeaderClose(out);
 	out << out.applyprefix << "module " << getFileForNode(be) << "(TEMPLATE_BE";
 	// use repair template if  repairable
-	out << (repair?"_SMART_REPAIR_2) is":") is") << out.applypostfix;
+	out << (repair?"_SMART_REPAIR_2)
+	is":") is") << out.applypostfix;
 	out.appendLine("");
 	out.indent();
 		if(repair)
@@ -461,10 +462,10 @@ int DFT::DFTreeBCGNodeBuilder::generateBE(FileWriter& out, const DFT::Nodes::Bas
 			out << out.applyprefix << "process MAIN [" << GATE_FAIL << " : NAT_CHANNEL, " << GATE_ACTIVATE << " : NAT_BOOL_CHANNEL, " << GATE_RATE_FAIL << " : NAT_NAT_CHANNEL] is" << out.applypostfix;
 		out.indent();
 			if(repair)
-				out << out.applyprefix << "BEproc [" << GATE_FAIL << "," << GATE_ONLINE << "](" << nr_parents << " of NAT";
+				out << out.applyprefix << "BEproc [" << GATE_FAIL << "," << GATE_ONLINE << "](";
 			else
 				out << out.applyprefix << "BEproc [" << GATE_FAIL << "," << GATE_ACTIVATE << "," << GATE_RATE_FAIL << "](" << nr_parents << " of NAT";
-			out << ", " << (cold?"TRUE":"FALSE");
+			//out << ", " << (cold?"TRUE":"FALSE");
 			out << ", " << initialState;
 			out << ")" << out.applypostfix;
 		out.outdent();
