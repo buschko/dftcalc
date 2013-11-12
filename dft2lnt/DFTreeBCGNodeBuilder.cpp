@@ -460,13 +460,17 @@ int DFT::DFTreeBCGNodeBuilder::generateBE(FileWriter& out, const DFT::Nodes::Bas
 		else
 			out << out.applyprefix << "process MAIN [" << GATE_FAIL << " : NAT_CHANNEL, " << GATE_ACTIVATE << " : NAT_BOOL_CHANNEL, " << GATE_RATE_FAIL << " : NAT_NAT_CHANNEL] is" << out.applypostfix;
 		out.indent();
-			if(repair)
+			if(repair){
 				out << out.applyprefix << "BEproc [" << GATE_FAIL << "," << GATE_ONLINE << "](";
-			else
+				out << initialState;
+			}
+			else{
 				out << out.applyprefix << "BEproc [" << GATE_FAIL << "," << GATE_ACTIVATE << "," << GATE_RATE_FAIL << "](" << nr_parents << " of NAT";
+				out << ", " << (cold?"TRUE":"FALSE");
+				out << ", " << initialState;
+				}
 			//out << ", " << (cold?"TRUE":"FALSE");
 			//out << ", " << initialState;
-			out << initialState;
 			out << ")" << out.applypostfix;
 		out.outdent();
 		out << out.applyprefix << "end process" << out.applypostfix;
