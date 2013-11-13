@@ -521,12 +521,23 @@ int DFT::DFTreeEXPBuilder::buildEXPBody(vector<DFT::EXPSyncRule*>& activationRul
 	/* rename the syncronization actions of BEs for fail and online */
 	exp_body << exp_body.applyprefix << "total rename" << exp_body.applypostfix;
 	exp_body.indent();
-	// add fail rates
-		
-		// add online rates
-		
-		
-		//ss << "\"" << DFT::DFTreeBCGNodeBuilder::GATE_RATE_FAIL << " !1 !2\" -> \"rate " << be.getLambda() << "\"" << "," << "\"" << DFT::DFTreeBCGNodeBuilder::GATE_RATE_REPAIR << " !1 !2\" -> \"rate " << be.getRepair() << "\"";
+	
+			int c=0;
+			int idx=1;
+			{
+				std::vector<DFT::Nodes::Node*>::iterator it = dft->getNodes().begin();
+				for(;it!=dft->getNodes().end();++it,++c) {
+					const DFT::Nodes::Node& node = **it;
+					if(node.isBasicEvent()) {
+						const DFT::Nodes::BasicEvent& be = *static_cast<const DFT::Nodes::BasicEvent*>(&node);
+						exp_body << exp_body.applyprefix;
+						if(idx>1) exp_body << ",";
+						exp_body << "\"" << "f_be" << idx << "\" -> \"rate " << be.getLambda() << "\"" << "," << "\"" << "o_be" << idx << "\" -> \"rate " << be.getRepair() << "\"";
+						idx++;
+					}
+				}
+			}
+			exp_body << exp_body.applypostfix;
 	exp_body.outdent();
 	exp_body.appendLine("in");
 	exp_body.indent();
