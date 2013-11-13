@@ -512,7 +512,6 @@ int DFT::DFTreeEXPBuilder::buildEXPBody(vector<DFT::EXPSyncRule*>& activationRul
 				exp_body << exp_body.applyprefix << rule.toLabel;
 			}
 		}
-		exp_body << exp_body.applypostfix;
 		for(size_t s=0; s<onlineRules.size(); ++s) {
 			EXPSyncRule& rule = *onlineRules.at(s);
 			if(rule.hideToLabel) {
