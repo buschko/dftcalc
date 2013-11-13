@@ -500,19 +500,28 @@ int DFT::DFTreeEXPBuilder::buildEXPBody(vector<DFT::EXPSyncRule*>& activationRul
 	exp_body << exp_body.applyprefix << "hide" << exp_body.applypostfix;
 	exp_body.indent();
 	
+		bool comma=false;
 		// Hide rules
 		for(size_t s=0; s<failRules.size(); ++s) {
 			EXPSyncRule& rule = *failRules.at(s);
 			if(rule.hideToLabel) {
-				exp_body << exp_body.applyprefix << rule.toLabel << "," << exp_body.applypostfix;
+				if(comma)
+					exp_body << "," << exp_body.applypostfix;
+				else
+					comma = true;
+				exp_body << exp_body.applyprefix << rule.toLabel;
 			}
 		}
-		for(size_t s=0; s<failRules.size(); ++s) {
+		exp_body << exp_body.applypostfix;
+		comma=false;
+		for(size_t s=0; s<onlineRules.size(); ++s) {
 			EXPSyncRule& rule = *failRules.at(s);
 			if(rule.hideToLabel) {
+				if(comma)
+					exp_body << "," << exp_body.applypostfix;
+				else
+					comma = true;
 				exp_body << exp_body.applyprefix << rule.toLabel;
-				if(s<failRules.size()-1) exp_body << ",";
-				exp_body << exp_body.applypostfix;
 			}
 		}
 	
@@ -522,17 +531,17 @@ int DFT::DFTreeEXPBuilder::buildEXPBody(vector<DFT::EXPSyncRule*>& activationRul
 	exp_body << exp_body.applyprefix << "total rename" << exp_body.applypostfix;
 	exp_body.indent();
 	
-			int c=0;
+			comma=false;
 			{
 				std::vector<DFT::Nodes::Node*>::iterator it = dft->getNodes().begin();
-				for(;it!=dft->getNodes().end();++it,++c) {
+				for(;it!=dft->getNodes().end();++it) {
 					const DFT::Nodes::Node& node = **it;
 					if(node.isBasicEvent()) {
 						const DFT::Nodes::BasicEvent& be = *static_cast<const DFT::Nodes::BasicEvent*>(&node);
 						exp_body << exp_body.applyprefix;
-						if(c>0) exp_body << ",";
+						if(comma) exp_body << ",";
+						else comma=true;
 						exp_body << "\"" << "f_be" << getIDOfNode(**it) << "\" -> \"rate " << be.getLambda() << "\"" << "," << "\"" << "o_be" << getIDOfNode(**it) << "\" -> \"rate " << be.getRepair() << "\"";
-						c++;
 					}
 				}
 			}
