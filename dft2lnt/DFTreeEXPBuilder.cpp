@@ -523,7 +523,6 @@ int DFT::DFTreeEXPBuilder::buildEXPBody(vector<DFT::EXPSyncRule*>& activationRul
 	exp_body.indent();
 	
 			int c=0;
-			int idx=1;
 			{
 				std::vector<DFT::Nodes::Node*>::iterator it = dft->getNodes().begin();
 				for(;it!=dft->getNodes().end();++it,++c) {
@@ -531,9 +530,9 @@ int DFT::DFTreeEXPBuilder::buildEXPBody(vector<DFT::EXPSyncRule*>& activationRul
 					if(node.isBasicEvent()) {
 						const DFT::Nodes::BasicEvent& be = *static_cast<const DFT::Nodes::BasicEvent*>(&node);
 						exp_body << exp_body.applyprefix;
-						if(idx>1) exp_body << ",";
-						exp_body << "\"" << "f_be" << idx << "\" -> \"rate " << be.getLambda() << "\"" << "," << "\"" << "o_be" << idx << "\" -> \"rate " << be.getRepair() << "\"";
-						idx++;
+						if(c>0) exp_body << ",";
+						exp_body << "\"" << "f_be" << getIDOfNode(**it) << "\" -> \"rate " << be.getLambda() << "\"" << "," << "\"" << "o_be" << getIDOfNode(**it) << "\" -> \"rate " << be.getRepair() << "\"";
+						c++;
 					}
 				}
 			}
