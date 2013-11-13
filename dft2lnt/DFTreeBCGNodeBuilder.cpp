@@ -61,7 +61,7 @@ std::string DFT::DFTreeBCGNodeBuilder::getFileForNode(const DFT::Nodes::Node& no
 			ss << "_cold";
 		}
 		// extension for a repairable BE
-		if(be.getRepair()>0) {
+		if(be.getRepair()){
 					ss << "_repair";
 				}
 		if(be.getFailed()) {
@@ -172,6 +172,7 @@ int DFT::DFTreeBCGNodeBuilder::generateAnd(FileWriter& out, const DFT::Nodes::Ga
 	return 0;
 }
 
+/*
 int DFT::DFTreeBCGNodeBuilder::generateOr(FileWriter& out, const DFT::Nodes::GateOr& gate) {
 	int nr_parents = gate.getParents().size();
 	int total = gate.getChildren().size();
@@ -218,6 +219,62 @@ int DFT::DFTreeBCGNodeBuilder::generateOr(FileWriter& out, const DFT::Nodes::Gat
 
 	return 0;
 }
+*/
+
+
+/**********************************************************************************************
+ *************************                TEST                *********************************
+ **********************************************************************************************/
+
+int DFT::DFTreeBCGNodeBuilder::generateOr(FileWriter& out, const DFT::Nodes::GateOr& gate) {
+	int nr_parents = gate.getParents().size();
+	int total = gate.getChildren().size();
+	out << out.applyprefix << " * Generating Or(parents=" << nr_parents << ", children= " << total << ")" << out.applypostfix;
+	generateHeaderClose(out);
+
+	if(gate.isRepairable()){
+		// FIXME: add this directly as gate information
+		int repairable = 0;
+
+		for(size_t n = 0; n<gate.getChildren().size(); ++n) {
+
+			// Get the current child and associated childID
+			const DFT::Nodes::Node& child = *gate.getChildren().at(n);
+			if(child.isRepairable())
+				repairable++;
+		}
+		out << out.applyprefix << "module " << getFileForNode(gate) << "(TEMPLATE_VOTING_SMART_REPAIR) is" << out.applypostfix;
+		out.indent();
+
+		out << out.applyprefix << "type BOOL_ARRAY is array[1.." << total << "] of BOOL end type" << out.applypostfix;
+		out << out.applyprefix << "process MAIN [" << GATE_FAIL << " : NAT_CHANNEL, " << GATE_ONLINE << " : NAT_CHANNEL] is" << out.applypostfix;
+		out.indent();
+		out << out.applyprefix << "VOTING_K [" << GATE_FAIL << "," << GATE_ONLINE << "] (" << 1 << " of NAT, " << total << " of NAT, (BOOL_ARRAY(FALSE)))" << out.applypostfix;
+		out.outdent();
+		out << out.applyprefix << "end process" << out.applypostfix;
+	} else {
+
+		out << out.applyprefix << "module " << getFileForNode(gate) << "(TEMPLATE_VOTING) is" << out.applypostfix;
+		out.indent();
+
+		out << out.applyprefix << "type BOOL_ARRAY is array[1.." << total << "] of BOOL end type" << out.applypostfix;
+
+		out << out.applyprefix << "process MAIN [" << GATE_FAIL << " : NAT_CHANNEL, " << GATE_ACTIVATE << " : NAT_BOOL_CHANNEL] is" << out.applypostfix;
+		out.indent();
+			out << out.applyprefix << "VOTING [" << GATE_FAIL << "," << GATE_ACTIVATE << "] (" << "1 of NAT, " << total << " of NAT, (BOOL_ARRAY(FALSE)))" << out.applypostfix;
+		out.outdent();
+		out << out.applyprefix << "end process" << out.applypostfix;
+	}
+
+	out.outdent();
+	out << out.applyprefix << "end module" << out.applypostfix;
+
+	return 0;
+}
+
+ /**********************************************************************************************
+ ****************************           TEST END             **********************************
+ **********************************************************************************************/
 
 /*
 int DFT::DFTreeBCGNodeBuilder::generateVoting(FileWriter& out, const DFT::Nodes::GateVoting& gate) {
@@ -298,7 +355,7 @@ int DFT::DFTreeBCGNodeBuilder::generateVoting(FileWriter& out, const DFT::Nodes:
 		out << out.applyprefix << "type BOOL_ARRAY is array[1.." << total << "] of BOOL end type" << out.applypostfix;
 		out << out.applyprefix << "process MAIN [" << GATE_FAIL << " : NAT_CHANNEL, " << GATE_ONLINE << " : NAT_CHANNEL] is" << out.applypostfix;
 		out.indent();
-		out << out.applyprefix << "VOTING_K [" << GATE_FAIL << "," << GATE_ONLINE << "] (" << threshold << " of NAT, " << total << " of NAT, (BOOL_ARRAY(FALSE)), (BOOL_ARRAY(FALSE)), " << repairable << " of NAT)" << out.applypostfix;
+		out << out.applyprefix << "VOTING_K [" << GATE_FAIL << "," << GATE_ONLINE << "] (" << threshold << " of NAT, " << total << " of NAT, (BOOL_ARRAY(FALSE)))" << out.applypostfix;
 		out.outdent();
 		out << out.applyprefix << "end process" << out.applypostfix;
 	} else {

@@ -1,6 +1,6 @@
 module TEMPLATE_VOTING_SMART_REPAIR(TEMPLATE_COMMON_SMART_REPAIR) is
 
-	process VOTING [FAIL : NAT_CHANNEL, ONLINE : NAT_CHANNEL] (threshold : NAT, total : NAT, received : BOOL_ARRAY) is
+	process VOTING_K [FAIL : NAT_CHANNEL, ONLINE : NAT_CHANNEL] (threshold : NAT, total : NAT, received : BOOL_ARRAY) is
 	var
 		nr : NAT,
 		done : BOOL,
