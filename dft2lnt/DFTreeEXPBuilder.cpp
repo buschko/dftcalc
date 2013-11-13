@@ -524,6 +524,7 @@ int DFT::DFTreeEXPBuilder::buildEXPBody(vector<DFT::EXPSyncRule*>& activationRul
 				exp_body << exp_body.applyprefix << rule.toLabel;
 			}
 		}
+		exp_body << exp_body.applypostfix;
 	
 	exp_body.outdent();
 	exp_body.appendLine("in");
